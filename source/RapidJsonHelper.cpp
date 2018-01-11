@@ -2,7 +2,7 @@
 
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
-#include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 
 #include <cstdio>
 
@@ -22,13 +22,18 @@ void RapidJsonHelper::ReadFromFile(const char* filepath, rapidjson::Document& do
 	fclose(fp);
 }
 
-void RapidJsonHelper::WriteToFile(const char* filepath, const rapidjson::Document& doc)
+void RapidJsonHelper::WriteToFile(const char* filepath, const rapidjson::Document& doc, bool pretty)
 {
 	FILE* fp = fopen(filepath, "wb");
 	rapidjson::FileWriteStream fout(fp, BUFFER, sizeof(BUFFER));
 
-	rapidjson::Writer<rapidjson::FileWriteStream> writer(fout);
-	doc.Accept(writer);
+	if (pretty) {
+		rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(fout);
+		doc.Accept(writer);
+	} else {
+		rapidjson::Writer<rapidjson::FileWriteStream> writer(fout);
+		doc.Accept(writer);
+	}
 
 	fclose(fp);
 }

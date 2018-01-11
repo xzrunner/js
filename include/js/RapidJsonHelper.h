@@ -10,7 +10,7 @@ class RapidJsonHelper
 public:
 	static void ReadFromFile(const char* filepath, rapidjson::Document& doc);
 
-	static void WriteToFile(const char* filepath, const rapidjson::Document& doc);
+	static void WriteToFile(const char* filepath, const rapidjson::Document& doc, bool pretty = true);
 
 }; // RapidJson
 
