@@ -2,3 +2,4 @@ js/
 projects/*
 
 !projects/js.vcxproj
+!projects/js.vcxproj.filters
