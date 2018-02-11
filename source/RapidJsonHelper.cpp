@@ -12,19 +12,27 @@ namespace js
 // todo: for multithread
 static char BUFFER[65536];
 
-void RapidJsonHelper::ReadFromFile(const char* filepath, rapidjson::Document& doc)
+bool RapidJsonHelper::ReadFromFile(const char* filepath, rapidjson::Document& doc)
 {
 	FILE* fp = fopen(filepath, "rb");
+	if (!fp) {
+		return false;
+	}
 	rapidjson::FileReadStream read(fp, BUFFER, sizeof(BUFFER));
 
 	doc.ParseStream(read);
 
 	fclose(fp);
+
+	return true;
 }
 
-void RapidJsonHelper::WriteToFile(const char* filepath, const rapidjson::Document& doc, bool pretty)
+bool RapidJsonHelper::WriteToFile(const char* filepath, const rapidjson::Document& doc, bool pretty)
 {
 	FILE* fp = fopen(filepath, "wb");
+	if (!fp) {
+		return false;
+	}
 	rapidjson::FileWriteStream fout(fp, BUFFER, sizeof(BUFFER));
 
 	if (pretty) {
@@ -36,6 +44,8 @@ void RapidJsonHelper::WriteToFile(const char* filepath, const rapidjson::Documen
 	}
 
 	fclose(fp);
+
+	return true;
 }
 
 }

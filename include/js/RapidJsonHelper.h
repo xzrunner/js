@@ -8,9 +8,9 @@ namespace js
 class RapidJsonHelper
 {
 public:
-	static void ReadFromFile(const char* filepath, rapidjson::Document& doc);
+	static bool ReadFromFile(const char* filepath, rapidjson::Document& doc);
 
-	static void WriteToFile(const char* filepath, const rapidjson::Document& doc, bool pretty = true);
+	static bool WriteToFile(const char* filepath, const rapidjson::Document& doc, bool pretty = true);
 
 }; // RapidJson
 
