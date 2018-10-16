@@ -1,6 +1,8 @@
 // use code from rttr's sample
 // https://github.com/rttrorg/rttr
 
+#include "js/RTTR.h"
+
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -206,7 +208,7 @@ void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& write
     auto prop_list = obj.get_derived_type().get_properties();
     for (auto prop : prop_list)
     {
-        if (prop.get_metadata("NO_SERIALIZE"))
+        if (prop.get_metadata(js::RTTR::NO_SERIALIZE_TAG))
             continue;
 
         variant prop_value = prop.get_value(obj);

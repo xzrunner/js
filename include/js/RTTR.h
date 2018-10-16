@@ -12,6 +12,7 @@ public:
 	static bool FromRapidJson(const std::string& json, const std::string& dir_path, rttr::instance obj);
 
 	static const char* FILEPATH_TAG;
+	static const char* NO_SERIALIZE_TAG;
 
 }; // RTTR
 

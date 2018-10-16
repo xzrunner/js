@@ -12,6 +12,8 @@ namespace js
 {
 
 const char* RTTR::FILEPATH_TAG     = "IS_FILEPATH";
+const char* RTTR::NO_SERIALIZE_TAG = "NO_SERIALIZE";
+
 std::string RTTR::ToRapidJson(rttr::instance obj)
 {
 	return detail::rttr_to_rapidjson(obj);
