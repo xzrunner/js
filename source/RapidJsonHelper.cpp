@@ -48,4 +48,12 @@ bool RapidJsonHelper::WriteToFile(const char* filepath, const rapidjson::Documen
 	return true;
 }
 
+std::string RapidJsonHelper::ValueToString(const rapidjson::Value& val)
+{
+	rapidjson::StringBuffer buf;
+	rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buf);
+	val.Accept(writer);
+	return buf.GetString();
+}
+
 }

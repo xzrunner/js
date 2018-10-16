@@ -12,6 +12,8 @@ public:
 
 	static bool WriteToFile(const char* filepath, const rapidjson::Document& doc, bool pretty = true);
 
+	static std::string ValueToString(const rapidjson::Value& val);
+
 }; // RapidJson
 
 }
