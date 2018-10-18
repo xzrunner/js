@@ -15,6 +15,8 @@
 #include <rapidjson/document.h>     // rapidjson's DOM-style API
 #include <rttr/type>
 
+#include <boost/filesystem.hpp>
+
 using namespace rapidjson;
 using namespace rttr;
 
@@ -23,11 +25,11 @@ namespace
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-void to_json_recursively(const instance& obj, PrettyWriter<StringBuffer>& writer);
+void to_json_recursively(const instance& obj, PrettyWriter<StringBuffer>& writer, const std::string& dir_path);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-bool write_variant(const variant& var, PrettyWriter<StringBuffer>& writer);
+bool write_variant(const variant& var, PrettyWriter<StringBuffer>& writer, const std::string& dir_path);
 
 bool write_atomic_types_to_json(const type& t, const variant& var, PrettyWriter<StringBuffer>& writer)
 {
@@ -91,14 +93,14 @@ bool write_atomic_types_to_json(const type& t, const variant& var, PrettyWriter<
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-static void write_array(const variant_sequential_view& view, PrettyWriter<StringBuffer>& writer)
+static void write_array(const variant_sequential_view& view, PrettyWriter<StringBuffer>& writer, const std::string& dir_path)
 {
     writer.StartArray();
     for (const auto& item : view)
     {
         if (item.is_sequential_container())
         {
-            write_array(item.create_sequential_view(), writer);
+            write_array(item.create_sequential_view(), writer, dir_path);
         }
         else
         {
@@ -110,7 +112,7 @@ static void write_array(const variant_sequential_view& view, PrettyWriter<String
             }
             else // object
             {
-                to_json_recursively(wrapped_var, writer);
+                to_json_recursively(wrapped_var, writer, dir_path);
             }
         }
     }
@@ -120,7 +122,7 @@ static void write_array(const variant_sequential_view& view, PrettyWriter<String
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-static void write_associative_container(const variant_associative_view& view, PrettyWriter<StringBuffer>& writer)
+static void write_associative_container(const variant_associative_view& view, PrettyWriter<StringBuffer>& writer, const std::string& dir_path)
 {
     static const string_view key_name("key");
     static const string_view value_name("value");
@@ -131,7 +133,7 @@ static void write_associative_container(const variant_associative_view& view, Pr
     {
         for (auto& item : view)
         {
-            write_variant(item.first, writer);
+            write_variant(item.first, writer, dir_path);
         }
     }
     else
@@ -141,11 +143,11 @@ static void write_associative_container(const variant_associative_view& view, Pr
             writer.StartObject();
             writer.String(key_name.data(), static_cast<rapidjson::SizeType>(key_name.length()), false);
 
-            write_variant(item.first, writer);
+            write_variant(item.first, writer, dir_path);
 
             writer.String(value_name.data(), static_cast<rapidjson::SizeType>(value_name.length()), false);
 
-            write_variant(item.second, writer);
+            write_variant(item.second, writer, dir_path);
 
             writer.EndObject();
         }
@@ -156,42 +158,47 @@ static void write_associative_container(const variant_associative_view& view, Pr
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-bool write_variant(const variant& var, PrettyWriter<StringBuffer>& writer)
+bool write_variant(const variant& var, PrettyWriter<StringBuffer>& writer, const std::string& dir_path)
 {
     auto value_type = var.get_type();
     auto wrapped_type = value_type.is_wrapper() ? value_type.get_wrapped_type() : value_type;
     bool is_wrapper = wrapped_type != value_type;
-
     if (write_atomic_types_to_json(is_wrapper ? wrapped_type : value_type,
                                    is_wrapper ? var.extract_wrapped_value() : var, writer))
     {
     }
     else if (var.is_sequential_container())
     {
-        write_array(var.create_sequential_view(), writer);
+        write_array(var.create_sequential_view(), writer, dir_path);
     }
     else if (var.is_associative_container())
     {
-        write_associative_container(var.create_associative_view(), writer);
+        write_associative_container(var.create_associative_view(), writer, dir_path);
     }
     else
     {
         auto child_props = is_wrapper ? wrapped_type.get_properties() : value_type.get_properties();
         if (!child_props.empty())
         {
-            to_json_recursively(var, writer);
+            to_json_recursively(var, writer, dir_path);
         }
         else
         {
-            bool ok = false;
-            auto text = var.to_string(&ok);
-            if (!ok)
-            {
-                writer.String(text);
-                return false;
-            }
-
-            writer.String(text);
+			if (var.is_type<const char*>())
+			{
+				auto text = var.get_value<const char*>();
+				writer.String(text);
+			}
+			else if (var.is_type<std::string>())
+			{
+				auto text = var.get_value<std::string>();
+				writer.String(text);
+			}
+			else
+			{
+				writer.String("");
+				return false;
+			}
         }
     }
 
@@ -200,7 +207,7 @@ bool write_variant(const variant& var, PrettyWriter<StringBuffer>& writer)
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& writer)
+void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& writer, const std::string& dir_path)
 {
     writer.StartObject();
     instance obj = obj2.get_type().get_raw_type().is_wrapper() ? obj2.get_wrapped_instance() : obj2;
@@ -208,8 +215,9 @@ void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& write
     auto prop_list = obj.get_derived_type().get_properties();
     for (auto prop : prop_list)
     {
-        if (prop.get_metadata(js::RTTR::NO_SERIALIZE_TAG))
-            continue;
+		if (prop.get_metadata(js::RTTR::NoSerializeTag())) {
+			continue;
+		}
 
         variant prop_value = prop.get_value(obj);
         if (!prop_value)
@@ -217,7 +225,26 @@ void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& write
 
         const auto name = prop.get_name();
         writer.String(name.data(), static_cast<rapidjson::SizeType>(name.length()), false);
-        if (!write_variant(prop_value, writer))
+		if (prop.get_metadata(js::RTTR::FilePathTag()))
+		{
+			std::string relative;
+			if (prop_value.is_type<const char*>())
+			{
+				auto path = prop_value.get_value<const char*>();
+				relative = boost::filesystem::relative(path, dir_path).string();
+			}
+			else if (prop_value.is_type<std::string>())
+			{
+				auto path = prop_value.get_value<std::string>();
+				relative = boost::filesystem::relative(path, dir_path).string();
+			}
+			else
+			{
+				assert(0);
+			}
+			writer.String(relative);
+		}
+        else if (!write_variant(prop_value, writer, dir_path))
         {
             std::cerr << "cannot serialize property: " << name << std::endl;
         }
@@ -237,7 +264,7 @@ namespace detail
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-std::string rttr_to_rapidjson(rttr::instance obj)
+std::string rttr_to_rapidjson(rttr::instance obj, const std::string& dir_path)
 {
     if (!obj.is_valid())
         return std::string();
@@ -245,7 +272,7 @@ std::string rttr_to_rapidjson(rttr::instance obj)
     StringBuffer sb;
     PrettyWriter<StringBuffer> writer(sb);
 
-    to_json_recursively(obj, writer);
+    to_json_recursively(obj, writer, dir_path);
 
     return sb.GetString();
 }
