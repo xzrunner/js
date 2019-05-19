@@ -171,7 +171,10 @@ void fromjson_recursively(instance obj2, Value& json_object, const std::string& 
 		{
 			assert(json_value.GetType() == kStringType);
 			auto relative_path = std::string(json_value.GetString());
-			auto absolute_path = boost::filesystem::absolute(relative_path, dir_path).string();
+            std::string absolute_path;
+            if (!relative_path.empty()) {
+                absolute_path = boost::filesystem::absolute(relative_path, dir_path).string();
+            }
 			auto type = prop.get_type();
 			if (type == rttr::type::get<const char*>()) {
 				prop.set_value(obj, absolute_path.c_str());
