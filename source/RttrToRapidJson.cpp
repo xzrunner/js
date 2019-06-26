@@ -227,22 +227,19 @@ void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& write
         writer.String(name.data(), static_cast<rapidjson::SizeType>(name.length()), false);
 		if (prop.get_metadata(js::RTTR::FilePathTag()))
 		{
-			std::string relative;
-			if (prop_value.is_type<const char*>())
-			{
-				auto path = prop_value.get_value<const char*>();
-				relative = boost::filesystem::relative(path, dir_path).string();
-			}
-			else if (prop_value.is_type<std::string>())
-			{
-				auto path = prop_value.get_value<std::string>();
-				relative = boost::filesystem::relative(path, dir_path).string();
-			}
-			else
-			{
+            std::string path;
+			if (prop_value.is_type<const char*>()) {
+				path = prop_value.get_value<const char*>();
+			} else if (prop_value.is_type<std::string>()) {
+				path = prop_value.get_value<std::string>();
+			} else {
 				assert(0);
 			}
-			writer.String(relative);
+            if (dir_path.empty()) {
+                writer.String(path);
+            } else {
+                writer.String(boost::filesystem::relative(path, dir_path).string());
+            }
 		}
         else if (!write_variant(prop_value, writer, dir_path))
         {
