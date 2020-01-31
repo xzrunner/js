@@ -238,7 +238,11 @@ void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& write
             if (dir_path.empty()) {
                 writer.String(path);
             } else {
-                writer.String(boost::filesystem::relative(path, dir_path).string());
+                auto relative = boost::filesystem::relative(path, dir_path).string();
+                if (relative.empty()) {
+                    relative = path;
+                }
+                writer.String(relative);
             }
 		}
         else if (!write_variant(prop_value, writer, dir_path))
