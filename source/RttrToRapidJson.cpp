@@ -225,7 +225,9 @@ void to_json_recursively(const instance& obj2, PrettyWriter<StringBuffer>& write
 
         const auto name = prop.get_name();
         writer.String(name.data(), static_cast<rapidjson::SizeType>(name.length()), false);
-		if (prop.get_metadata(js::RTTR::FilePathTag()))
+        auto zz = strncmp(name.data(), js::RTTR::FILEPATH_STR, name.length());
+        bool is_filepath = strncmp(name.data(), js::RTTR::FILEPATH_STR, name.length()) == 0;
+		if (is_filepath || prop.get_metadata(js::RTTR::FilePathTag()))
 		{
             std::string path;
 			if (prop_value.is_type<const char*>()) {

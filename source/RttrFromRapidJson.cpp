@@ -167,7 +167,9 @@ void fromjson_recursively(instance obj2, Value& json_object, const std::string& 
         const type value_t = prop.get_type();
 		auto& json_value = ret->value;
 
-		if (prop.get_metadata(js::RTTR::FilePathTag()))
+        const auto name = prop.get_name();
+        bool is_filepath = strncmp(name.data(), js::RTTR::FILEPATH_STR, name.length()) == 0;
+        if (is_filepath || prop.get_metadata(js::RTTR::FilePathTag()))
 		{
 			assert(json_value.GetType() == kStringType);
 			auto relative_path = std::string(json_value.GetString());

@@ -18,6 +18,8 @@ public:
 		return "NO_SERIALIZE";
 	}
 
+	static constexpr char* const FILEPATH_STR = "filepath";
+
 }; // RTTR
 
 }
